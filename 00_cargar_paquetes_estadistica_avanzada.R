@@ -9,7 +9,10 @@ pkgs <- c(
   "lme4",
   "lubridate",
   "pwr",
-  "survival"
+  "rcompanion",
+  "survival",
+  "FSA",
+  "simstudy"
 )
 
 invisible(
@@ -17,7 +20,7 @@ invisible(
     pkgs,
     function(x) {
       if (!x %in% installed.packages()[, 1])
-        install.packages(x, dep = TRUE)
+        install.packages(x, Ncpus = 6, dep = TRUE)
       suppressPackageStartupMessages(require(x, character.only = TRUE))
     }
   )
