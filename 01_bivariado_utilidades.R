@@ -4,6 +4,7 @@ library(data.table)
 library(rcompanion)
 library(FSA)
 library(car)
+library(MASS)
 library(compareGroups)
 library(gtsummary)
 library(simstudy)
@@ -231,6 +232,7 @@ summary(lm(rank(predimed$wth) ~ rank(predimed$bmi)))
 # El modelo lineal ------------------------------------------------------------------
 mimod <- lm(bmi ~ I(wth - mean(wth)) + I(age - mean(age)), data = predimed)
 summary(mimod)
+tbl_regression(mimod)
 
 opar <- par()
 par(mfrow = c(2, 2))
@@ -250,6 +252,53 @@ with(
   miglm, c(pchisq(deviance, df.residual,low= F),pchisq(null.deviance, df.null,low= F)))
 
 sum(abs(residuos) > 2) / length(residuos)
+cbind(exp(coef(miglm)), exp(confint(miglm)))
+tbl_regression(miglm, exp = TRUE, add_estimate_to_reference_rows = TRUE)
+
+
+# Equivaqlencia regresión logística y binomial (solo variables cualitativas).
+predi_binom <- predimed[
+  ,
+  .(sum(event == "Yes"), .N),
+  by = .(group, sex, smoke, famhist)
+]
+mod_binom <- glm(
+  formula = cbind(V1, N - V1) ~ group + sex + smoke + famhist,
+  data    = predi_binom,
+  family  = binomial
+)
+mod_logis <- glm(
+  formula = event ~ group + sex + smoke + famhist,
+  data    = predimed,
+  family  = binomial
+)
+summary(mod_binom)
+summary(mod_logis)
+tbl_regression(mod_binom, exp = TRUE, add_estimate_to_reference_rows = TRUE)
+tbl_regression(mod_binom, exp = TRUE, add_estimate_to_reference_rows = TRUE)
+
+# Modelos Poisson, quasi-Poisson y binomial negativa
+mod_pois  <- glm(
+  formula = V1 ~ group + sex + smoke + famhist,
+  data    = predi_binom,
+  family  = poisson
+)
+mod_qpois <- glm(
+  formula = V1 ~ group + sex + smoke + famhist,
+  data    = predi_binom,
+  family  = quasipoisson
+)
+mod_nbin  <- MASS::glm.nb(
+  formula = V1 ~ group + sex + smoke + famhist,
+  data    = predi_binom
+)
+summary(mod_pois)
+summary(mod_qpois)
+summary(mod_nbin)
+
+tbl_regression(mod_pois, exp = TRUE, add_estimate_to_reference_rows = TRUE)
+tbl_regression(mod_qpois, exp = TRUE, add_estimate_to_reference_rows = TRUE)
+tbl_regression(mod_nbin, exp = TRUE, add_estimate_to_reference_rows = TRUE)
 
 
 # Extra: descriptiva fácil ----------------------------------------------------------
